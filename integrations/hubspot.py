@@ -6,6 +6,7 @@ import json
 import secrets
 import base64
 import asyncio
+import requests
 from dotenv import load_dotenv
 from fastapi.responses import HTMLResponse
 import httpx
@@ -70,7 +71,7 @@ async def oauth2callback_hubspot(request: Request):
             delete_key_redis(f'hubspot_state:{org_id}:{user_id}'),
         )
 
-    print(response.json())
+    # print(response.json())
     await add_key_value_redis(f'hubspot_credentials:{org_id}:{user_id}', json.dumps(response.json()), expire=600)
     
     close_window_script = """
@@ -83,13 +84,57 @@ async def oauth2callback_hubspot(request: Request):
     return HTMLResponse(content=close_window_script)
 
 async def get_hubspot_credentials(user_id, org_id):
-    # TODO
-    pass
+    credentials = await get_value_redis(f'hubspot_credentials:{org_id}:{user_id}')
+    if not credentials:
+        raise HTTPException(status_code=400, detail='No credentials found.')
+    credentials = json.loads(credentials)
+    if not credentials:
+        raise HTTPException(status_code=400, detail='Invalid credentials.')
+    await delete_key_redis(f'hubspot_credentials:{org_id}:{user_id}')
+
+    # print(credentials)
+    return credentials
+
+def _recursive_dict_search(data, target_key):
+    """Recursively search for a key in a dictionary of dictionaries."""
+    if target_key in data:
+        return data[target_key]
+
+    for value in data.values():
+        if isinstance(value, dict):
+            result = _recursive_dict_search(value, target_key)
+            if result is not None:
+                return result
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    result = _recursive_dict_search(item, target_key)
+                    if result is not None:
+                        return result
+    return None
 
 async def create_integration_item_metadata_object(response_json):
     # TODO
     pass
 
 async def get_items_hubspot(credentials):
-    # TODO
-    pass
+    credentials = json.loads(credentials)
+    print(credentials)
+    response = requests.get(
+        'https://api.hubapi.com/contacts/v1/lists/all/contacts/all?count=1',
+        headers={
+            'Authorization': f'Bearer {credentials.get("access_token")}',
+            'Content-Type': 'application/json',
+        },
+    )
+    print(response.json())
+    if response.status_code == 200:
+        results = response.json()['contacts']
+        list_of_integration_item_metadata = []
+        for result in results:
+            list_of_integration_item_metadata.append(
+                create_integration_item_metadata_object(result)
+            )
+
+        print(list_of_integration_item_metadata)
+    return
