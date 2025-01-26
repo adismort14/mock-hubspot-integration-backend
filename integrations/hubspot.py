@@ -195,25 +195,3 @@ async def get_items_hubspot(credentials: str) -> list:
     
     results = await asyncio.gather(*tasks)
     return [item for sublist in results for item in sublist]
-
-    # global list_of_integration_item_metadata
-    # list_of_integration_item_metadata = []
-    
-    # for object_type in standard_objects:
-    #     # @see https://developers.hubspot.com/docs/reference/api/crm/objects/objects#get-%2Fcrm%2Fv3%2Fobjects%2F%7Bobjecttype%7D
-    #     url = f'https://api.hubapi.com/crm/v3/objects/{object_type}'
-    #     params = { "limit" : 100, "archived": False }
-    #     headers = {
-    #         'Authorization': f'Bearer {credentials.get("access_token")}',
-    #         'Content-Type': 'application/json'
-    #     }
-        
-    #     response = requests.get(url, params = params, headers=headers)
-        
-    #     if response.status_code == 200:
-    #         results = response.json().get('results')
-    #         for item in results:
-    #             item_result = create_integration_item_metadata_object(item, object_type)
-    #             list_of_integration_item_metadata.append(item_result)
-
-    # return list_of_integration_item_metadata
